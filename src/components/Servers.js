@@ -32,38 +32,50 @@ const uvicornClick = async () => {
   }
 };
 
-const sendResults = (data, responses) => {
-  console.log("Sending results to server:", data, responses[0].status);
-  let durchschnitt = 0;
-for (let i = 0; i < data.length; i++) {
-  const obj = Array.isArray(data[i]) ? data[i][0] : data[i]; // immer Objekt sichern
-  durchschnitt += obj.duration_ms;
-}
-  console.log("Durchschnittliche Dauer (ms):", durchschnitt / data.length);
-   const request = fetch("http://localhost:8000/save_result", {
-     method: "POST",
-     headers: { "Content-Type": "application/json" },
-     body: JSON.stringify({ data: data, status: responses[0].status })
-   });
-
-};
-
 
   const urlGunicorn = guniType === "sync" ? "http://localhost:8001/get_sync_gunicorn_function" : "http://localhost:8001/get_async_gunicorn_function";
 
   const gunicornClick = async () => {
+     try {
     const requests = Array.from({ length: guniRequests }, () =>
-      fetch(urlGunicorn, { 
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ req_number: guniRequests })
-      }).then(res => res.json())
+      fetch(urlGunicorn, { method: "GET" })
     );
-    const results = await Promise.all(requests);
-    console.log(results);
+
+    const responses = await Promise.all(requests);
+
+    const results = await Promise.all(responses.map(res => res.json()));
+
+    sendResults(results, responses);
+
+  } catch (error) {
+    console.error("Fehler bei fetch:", error);
+  }
   }
 
-  // Hier neue funktion schreiben,die die anzahl und status und noch benötigte Daten der anfragen nimmt und diese an den server schickt
+
+const sendResults = (data, responses) => {
+  let type = data[0][0].type;
+    let server = data[0][0].server;
+
+for (let i = 0; i < data.length; i++) {
+  const success_status = responses[i].ok
+  const status = responses[i].status
+
+     const request = fetch("http://localhost:8000/save_result", {
+     method: "POST",
+     headers: { "Content-Type": "application/json" },
+     body: JSON.stringify({ "success_status": success_status,"server":server,"type":type,"status": status,"id":Date.now()})
+   });
+    request.then(response => response.json()).then(result => {
+      console.log("Ergebnis gespeichert:", result);
+    }).catch(error => {
+      console.error("Fehler beim Speichern des Ergebnisses:", error);
+    });
+ 
+}};
+
+
+
 
   return (
     <div className="container">
@@ -87,6 +99,7 @@ for (let i = 0; i < data.length; i++) {
           <option value="500">500</option>
           <option value="700">700</option>
           <option value="1000">1000</option>
+          <option value="10000">10000</option>
         </select>
 
         <Button onClick={uvicornClick}>Submit</Button>
@@ -111,6 +124,8 @@ for (let i = 0; i < data.length; i++) {
           <option value="500">500</option>
           <option value="700">700</option>
           <option value="1000">1000</option>
+          <option value="10000">10000</option>
+
         </select>
 
         <Button onClick={gunicornClick}>Submit</Button>
