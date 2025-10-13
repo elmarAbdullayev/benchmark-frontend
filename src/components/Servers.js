@@ -23,6 +23,7 @@ const uvicornClick = async () => {
 
     // in JSON umwandeln
     const results = await Promise.all(responses.map(res => res.json()));
+    console.log(results);
 
     // an Funktion übergeben
     sendResults(results, responses);
@@ -60,6 +61,7 @@ const sendResults = (data, responses) => {
 for (let i = 0; i < data.length; i++) {
   const success_status = responses[i].ok
   const status = responses[i].status
+
 
      const request = fetch("http://localhost:8000/save_result", {
      method: "POST",
